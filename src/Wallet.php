@@ -8,17 +8,21 @@ use Money\Money;
 
 class Wallet
 {
+    /** @var string */
+    private $name;
+
     /** @var Money */
     private $balance;
 
     /**
-     * @param Money $balance
+     * @param string $name
+     * @param Money  $balance
      *
      * @return Wallet
      */
-    public static function withMoney(Money $balance): self
+    public static function withMoney(string $name, Money $balance): self
     {
-        return new self($balance);
+        return new self($name, $balance);
     }
 
     /**
@@ -49,8 +53,17 @@ class Wallet
         return $this->balance;
     }
 
-    private function __construct(Money $balance)
+    /**
+     * @return string
+     */
+    public function name(): string
     {
+        return $this->name;
+    }
+
+    private function __construct(string $name, Money $balance)
+    {
+        $this->name    = $name;
         $this->balance = $balance;
 
         $this->guardAgainstNegativeBalance();
@@ -59,7 +72,7 @@ class Wallet
     private function guardAgainstNegativeBalance(): void
     {
         if (true === $this->balance->isNegative()) {
-            throw new \InvalidArgumentException(sprintf('Wallet balance can not be negative', $this->balance->getAmount()));
+            throw new \DomainException('Wallet balance can not be negative');
         }
     }
 }

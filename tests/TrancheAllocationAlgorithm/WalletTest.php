@@ -13,15 +13,23 @@ class WalletTest extends TestCase
     /** @test */
     public function it_can_have_money(): void
     {
-        $wallet = Wallet::withMoney(Money::GBP('1000'));
+        $wallet = Wallet::withMoney('w1', Money::GBP('1000'));
 
         $this->assertEquals(Money::GBP('1000'), $wallet->balance());
     }
 
     /** @test */
+    public function it_can_have_name(): void
+    {
+        $wallet = Wallet::withMoney('w1', Money::GBP('1000'));
+
+        $this->assertEquals('w1', $wallet->name());
+    }
+
+    /** @test */
     public function it_can_pick_one_pound(): void
     {
-        $wallet   = Wallet::withMoney(Money::GBP('1000'));
+        $wallet   = Wallet::withMoney('w1', Money::GBP('1000'));
         $onePound = $wallet->pickOnePound();
 
         $this->assertEquals(Money::GBP('1'), $onePound);
@@ -31,7 +39,7 @@ class WalletTest extends TestCase
     /** @test */
     public function it_can_be_empty(): void
     {
-        $wallet = Wallet::withMoney(Money::GBP('5'));
+        $wallet = Wallet::withMoney('w1', Money::GBP('5'));
 
         $wallet->pickOnePound();
         $wallet->pickOnePound();
@@ -45,9 +53,9 @@ class WalletTest extends TestCase
     /** @test */
     public function it_can_not_be_negative(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(\DomainException::class);
 
-        $wallet = Wallet::withMoney(Money::GBP('5'));
+        $wallet = Wallet::withMoney('w1', Money::GBP('5'));
 
         $wallet->pickOnePound();
         $wallet->pickOnePound();
