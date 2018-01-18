@@ -1,0 +1,39 @@
+{
+    "lzakrzewski": "lzakrzewski/tranche-allocation-algorithm",
+    "description": "Tranche allocation algorithm",
+    "authors": [
+        {
+            "name": "lzakrzewski",
+            "email": "contact@lzakrzewski.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "TrancheAllocationAlgorithm\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "tests\\": "tests/"
+        }
+    },
+    "require": {
+        "php": ">=7.1.0",
+        "moneyphp/money": "~3.1"
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "~2.8",
+        "phpunit/phpunit": "~6.5"
+    },
+    "scripts": {
+        "cs-fixer": "bin/php-cs-fixer fix --config=php_cs.dist",
+        "unit": "bin/phpunit --testsuite=unit",
+        "test": [
+            "@cs-fixer",
+            "@unit"
+        ]
+    },
+    "config": {
+        "bin-dir": "bin"
+    }
+}
