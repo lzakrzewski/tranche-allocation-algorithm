@@ -114,6 +114,59 @@ class NaiveAllocationAlgorithmTest extends TestCase
         );
     }
 
+    /** @test */
+    public function it_can_allocate_3_wallets_in_2_tranches(): void
+    {
+        $wallets = [
+            Wallet::withMoney('w1', Money::GBP('100')),
+            Wallet::withMoney('w2', Money::GBP('33')),
+            Wallet::withMoney('w3', Money::GBP('34')),
+        ];
+
+        $tranches = [
+            Tranche::withAmount('t1', Money::GBP('100')),
+            Tranche::withAmount('t2', Money::GBP('150')),
+        ];
+
+        $allocation = $this->algorithm->allocate($wallets, $tranches);
+
+        $this->assertEquals(
+            [
+                [
+                    'wallet'  => 'w1',
+                    'tranche' => 't1',
+                    'amount'  => Money::GBP('50'),
+                ],
+                [
+                    'wallet'  => 'w1',
+                    'tranche' => 't2',
+                    'amount'  => Money::GBP('50'),
+                ],
+                [
+                    'wallet'  => 'w2',
+                    'tranche' => 't1',
+                    'amount'  => Money::GBP('17'),
+                ],
+                [
+                    'wallet'  => 'w2',
+                    'tranche' => 't2',
+                    'amount'  => Money::GBP('16'),
+                ],
+                [
+                    'wallet'  => 'w3',
+                    'tranche' => 't1',
+                    'amount'  => Money::GBP('17'),
+                ],
+                [
+                    'wallet'  => 'w3',
+                    'tranche' => 't2',
+                    'amount'  => Money::GBP('17'),
+                ],
+            ],
+            $allocation
+        );
+    }
+
     /** {@inheritdoc} */
     protected function setUp(): void
     {
