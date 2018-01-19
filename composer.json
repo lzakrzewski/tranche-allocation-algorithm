@@ -19,7 +19,8 @@
     },
     "require": {
         "php": ">=7.1.0",
-        "moneyphp/money": "~3.1"
+        "moneyphp/money": "~3.1",
+        "rogervila/array-diff-multidimensional": "^1.0"
     },
     "require-dev": {
         "friendsofphp/php-cs-fixer": "~2.8",
