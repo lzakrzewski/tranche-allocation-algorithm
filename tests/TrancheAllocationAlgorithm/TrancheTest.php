@@ -6,41 +6,39 @@ namespace tests\TrancheAllocationAlgorithm;
 
 use Money\Money;
 use PHPUnit\Framework\TestCase;
+use TrancheAllocationAlgorithm\Percentage;
 use TrancheAllocationAlgorithm\Tranche;
 
 class TrancheTest extends TestCase
 {
     /** @test */
-    public function it_can_have_available_amount(): void
+    public function it_can_be_created(): void
     {
-        $tranche = Tranche::withAmount('t1', Money::GBP('1001'));
+        $tranche = Tranche::create('t1', 'A', Money::GBP('1001'), Percentage::_75());
 
+        $this->assertInstanceOf(Tranche::class, $tranche);
+        $this->assertEquals('t1', $tranche->id());
+        $this->assertEquals('A', $tranche->name());
         $this->assertEquals(Money::GBP('1001'), $tranche->availableAmount());
-    }
-
-    /** @test */
-    public function it_can_have_name(): void
-    {
-        $tranche = Tranche::withAmount('t1', Money::GBP('1001'));
-
-        $this->assertEquals('t1', $tranche->name());
+        $this->assertEquals(Percentage::_75(), $tranche->percentage());
     }
 
     /** @test */
     public function it_can_allocate_money(): void
     {
-        $tranche = Tranche::withAmount('t1', Money::GBP('1001'));
+        $tranche = Tranche::create('t1', 'A', Money::GBP('1001'), Percentage::_75());
+
         $tranche->allocate(Money::GBP('100'));
         $tranche->allocate(Money::GBP('100'));
 
-        $this->assertEquals(Money::GBP('200'), $tranche->allocation());
         $this->assertEquals(Money::GBP('801'), $tranche->availableAmount());
     }
 
     /** @test */
     public function it_can_be_funded(): void
     {
-        $tranche = Tranche::withAmount('t1', Money::GBP('1001'));
+        $tranche = Tranche::create('t1', 'A', Money::GBP('1001'), Percentage::_75());
+
         $tranche->allocate(Money::GBP('1000'));
         $tranche->allocate(Money::GBP('1'));
 
@@ -52,7 +50,7 @@ class TrancheTest extends TestCase
     {
         $this->expectException(\DomainException::class);
 
-        $tranche = Tranche::withAmount('t1', Money::GBP('1001'));
+        $tranche = Tranche::create('t1', 'A', Money::GBP('1001'), Percentage::_75());
 
         $tranche->allocate(Money::GBP('1002'));
     }

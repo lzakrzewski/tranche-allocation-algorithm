@@ -6,30 +6,27 @@ namespace tests\TrancheAllocationAlgorithm;
 
 use Money\Money;
 use PHPUnit\Framework\TestCase;
+use TrancheAllocationAlgorithm\Percentage;
 use TrancheAllocationAlgorithm\Wallet;
 
 class WalletTest extends TestCase
 {
     /** @test */
-    public function it_can_have_money(): void
+    public function it_can_be_created(): void
     {
-        $wallet = Wallet::withMoney('w1', Money::GBP('1000'));
+        $wallet = Wallet::create('w1', Money::GBP('1000'), ['A', 'B'], Percentage::_75());
 
+        $this->assertInstanceOf(Wallet::class, $wallet);
+        $this->assertEquals('w1', $wallet->id());
         $this->assertEquals(Money::GBP('1000'), $wallet->balance());
-    }
-
-    /** @test */
-    public function it_can_have_name(): void
-    {
-        $wallet = Wallet::withMoney('w1', Money::GBP('1000'));
-
-        $this->assertEquals('w1', $wallet->name());
+        $this->assertEquals(['A', 'B'], $wallet->tranches());
+        $this->assertEquals(Percentage::_75(), $wallet->percentage());
     }
 
     /** @test */
     public function it_can_pick_one_pound(): void
     {
-        $wallet   = Wallet::withMoney('w1', Money::GBP('1000'));
+        $wallet   = Wallet::create('w1', Money::GBP('1000'), ['A', 'B'], Percentage::_75());
         $onePound = $wallet->pickOnePound();
 
         $this->assertEquals(Money::GBP('1'), $onePound);
@@ -39,7 +36,7 @@ class WalletTest extends TestCase
     /** @test */
     public function it_can_be_empty(): void
     {
-        $wallet = Wallet::withMoney('w1', Money::GBP('5'));
+        $wallet = Wallet::create('w1', Money::GBP('5'), ['A', 'B'], Percentage::_75());
 
         $wallet->pickOnePound();
         $wallet->pickOnePound();
@@ -55,7 +52,7 @@ class WalletTest extends TestCase
     {
         $this->expectException(\DomainException::class);
 
-        $wallet = Wallet::withMoney('w1', Money::GBP('5'));
+        $wallet = Wallet::create('w1', Money::GBP('5'), ['A', 'B'], Percentage::_75());
 
         $wallet->pickOnePound();
         $wallet->pickOnePound();

@@ -9,23 +9,28 @@ use Money\Money;
 class Tranche
 {
     /** @var string */
+    private $id;
+
+    /** @var string */
     private $name;
 
     /** @var Money */
     private $availableAmount;
 
-    /** @var Money */
-    private $allocation;
+    /** @var string */
+    private $percentage;
 
     /**
-     * @param string $name
-     * @param Money  $amount
+     * @param string     $id
+     * @param string     $name
+     * @param Money      $amount
+     * @param Percentage $percentage
      *
      * @return Tranche
      */
-    public static function withAmount(string $name, Money $amount): self
+    public static function create(string $id, string $name, Money $amount, Percentage $percentage): self
     {
-        return new self($name, $amount);
+        return new self($id, $name, $amount, $percentage);
     }
 
     /**
@@ -35,7 +40,6 @@ class Tranche
      */
     public function allocate(Money $amount): Money
     {
-        $this->allocation      = $this->allocation->add($amount);
         $this->availableAmount = $this->availableAmount->subtract($amount);
 
         $this->guardAgainstNegativeAvailableAmount();
@@ -48,9 +52,9 @@ class Tranche
         return $this->availableAmount->isZero();
     }
 
-    public function name(): string
+    public function id(): string
     {
-        return $this->name;
+        return $this->id;
     }
 
     public function availableAmount(): Money
@@ -58,16 +62,23 @@ class Tranche
         return $this->availableAmount;
     }
 
-    public function allocation(): Money
+    public function name(): string
     {
-        return $this->allocation;
+        return $this->name;
     }
 
-    private function __construct(string $name, Money $availableAmount)
+    public function percentage(): Percentage
     {
+        return $this->percentage;
+    }
+
+    private function __construct(string $id, string $name, Money $availableAmount, Percentage $percentage)
+    {
+        $this->id              = $id;
         $this->name            = $name;
         $this->allocation      = Money::GBP('0');
         $this->availableAmount = $availableAmount;
+        $this->percentage      = $percentage;
 
         $this->guardAgainstNegativeAvailableAmount();
     }

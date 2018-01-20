@@ -9,25 +9,22 @@ use Money\Money;
 class Wallet
 {
     /** @var string */
-    private $name;
+    private $id;
 
     /** @var Money */
     private $balance;
 
-    /**
-     * @param string $name
-     * @param Money  $balance
-     *
-     * @return Wallet
-     */
-    public static function withMoney(string $name, Money $balance): self
+    /** @var array */
+    private $tranches;
+
+    /** @var Percentage */
+    private $percentage;
+
+    public static function create(string $id, Money $balance, array $tranches, Percentage $percentage): self
     {
-        return new self($name, $balance);
+        return new self($id, $balance, $tranches, $percentage);
     }
 
-    /**
-     * @return Money
-     */
     public function pickOnePound(): Money
     {
         $this->balance = $this->balance->subtract($onePound = Money::GBP('1'));
@@ -37,34 +34,37 @@ class Wallet
         return $onePound;
     }
 
-    /**
-     * @return bool
-     */
     public function isEmpty(): bool
     {
         return $this->balance->isZero();
     }
 
-    /**
-     * @return Money
-     */
     public function balance(): Money
     {
         return $this->balance;
     }
 
-    /**
-     * @return string
-     */
-    public function name(): string
+    public function id(): string
     {
-        return $this->name;
+        return $this->id;
     }
 
-    private function __construct(string $name, Money $balance)
+    public function tranches(): array
     {
-        $this->name    = $name;
-        $this->balance = $balance;
+        return $this->tranches;
+    }
+
+    public function percentage(): Percentage
+    {
+        return $this->percentage;
+    }
+
+    private function __construct(string $id, Money $balance, array $tranches, Percentage $percentage)
+    {
+        $this->id         = $id;
+        $this->balance    = $balance;
+        $this->tranches   = $tranches;
+        $this->percentage = $percentage;
 
         $this->guardAgainstNegativeBalance();
     }
