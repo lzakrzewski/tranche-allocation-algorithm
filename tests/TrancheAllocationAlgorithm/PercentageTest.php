@@ -40,4 +40,20 @@ class PercentageTest extends TestCase
 
         $this->assertEquals('0.60', $percentage->value());
     }
+
+    /** @test */
+    public function it_can_be_grater(): void
+    {
+        $percentage = Percentage::_75();
+
+        $this->assertTrue($percentage->isGreaterThan(Percentage::_60()));
+    }
+
+    /** @test */
+    public function it_can_not_be_greater(): void
+    {
+        $percentage = Percentage::_60();
+
+        $this->assertFalse($percentage->isGreaterThan(Percentage::_65()));
+    }
 }

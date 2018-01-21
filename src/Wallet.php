@@ -25,13 +25,32 @@ class Wallet
         return new self($id, $balance, $tranches, $percentage);
     }
 
-    public function pickOnePound(): Money
+    public function canInvestIn(Tranche $tranche): bool
     {
-        $this->balance = $this->balance->subtract($onePound = Money::GBP('1'));
+        if (false === in_array($tranche->name(), $this->tranches())) {
+            return false;
+        }
+
+        if (true === $tranche->percentage()->isGreaterThan($this->percentage())) {
+            return false;
+        }
+
+        if (true === $this->isEmpty() || true === $tranche->isFunded()) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public function invest(Tranche $tranche, Money $amount): void
+    {
+        if (false === $this->canInvestIn($tranche)) {
+            throw new \DomainException(sprintf('Can not invest to tranche %s', $tranche->id()));
+        }
+
+        $this->balance = $this->balance->subtract($tranche->invest($amount));
 
         $this->guardAgainstNegativeBalance();
-
-        return $onePound;
     }
 
     public function isEmpty(): bool

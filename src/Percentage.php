@@ -9,6 +9,11 @@ class Percentage
     /** @var string */
     private $value;
 
+    public function isGreaterThan(self $percentage): bool
+    {
+        return $this->value() > $percentage->value();
+    }
+
     public static function _75(): self
     {
         return new self('0.75');

@@ -38,7 +38,7 @@ class Tranche
      *
      * @return Money
      */
-    public function allocate(Money $amount): Money
+    public function invest(Money $amount): Money
     {
         $this->availableAmount = $this->availableAmount->subtract($amount);
 
@@ -76,7 +76,6 @@ class Tranche
     {
         $this->id              = $id;
         $this->name            = $name;
-        $this->allocation      = Money::GBP('0');
         $this->availableAmount = $availableAmount;
         $this->percentage      = $percentage;
 

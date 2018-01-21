@@ -24,12 +24,12 @@ class TrancheTest extends TestCase
     }
 
     /** @test */
-    public function it_can_allocate_money(): void
+    public function it_can_invest_money(): void
     {
         $tranche = Tranche::create('t1', 'A', Money::GBP('1001'), Percentage::_75());
 
-        $tranche->allocate(Money::GBP('100'));
-        $tranche->allocate(Money::GBP('100'));
+        $tranche->invest(Money::GBP('100'));
+        $tranche->invest(Money::GBP('100'));
 
         $this->assertEquals(Money::GBP('801'), $tranche->availableAmount());
     }
@@ -39,8 +39,8 @@ class TrancheTest extends TestCase
     {
         $tranche = Tranche::create('t1', 'A', Money::GBP('1001'), Percentage::_75());
 
-        $tranche->allocate(Money::GBP('1000'));
-        $tranche->allocate(Money::GBP('1'));
+        $tranche->invest(Money::GBP('1000'));
+        $tranche->invest(Money::GBP('1'));
 
         $this->assertTrue($tranche->isFunded());
     }
@@ -52,6 +52,6 @@ class TrancheTest extends TestCase
 
         $tranche = Tranche::create('t1', 'A', Money::GBP('1001'), Percentage::_75());
 
-        $tranche->allocate(Money::GBP('1002'));
+        $tranche->invest(Money::GBP('1002'));
     }
 }
