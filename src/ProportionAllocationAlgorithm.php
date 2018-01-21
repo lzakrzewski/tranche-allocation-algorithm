@@ -25,24 +25,21 @@ class ProportionAllocationAlgorithm implements AllocationAlgorithm
 
     private function allocationsForWallet(Wallet $wallet, array $tranches): array
     {
-        $amount           = Money::GBP('0');
+        $result           = [];
         $eligibleTranches = $this->eligibleTranches($wallet, $tranches);
-        $allocations      = $wallet->balance()->allocateTo(count($eligibleTranches));
+        $sumOnTranches    = $this->sumOnTranches($eligibleTranches);
+        $allocations      = $wallet->balance()
+            ->allocate($this->ratios($sumOnTranches, $eligibleTranches));
 
-        if (false === empty($allocations)) {
-            $amount = $allocations[0];
+        foreach ($eligibleTranches as $key => $tranche) {
+            $result[] = [
+                'wallet'  => $wallet->id(),
+                'tranche' => $tranche->id(),
+                'amount'  => $allocations[$key],
+            ];
         }
 
-        return array_map(
-            function (Tranche $tranche) use ($wallet, $amount) {
-                return [
-                    'wallet'  => $wallet->id(),
-                    'tranche' => $tranche->id(),
-                    'amount'  => $amount,
-                ];
-            },
-            $eligibleTranches
-        );
+        return $result;
     }
 
     private function eligibleTranches(Wallet $wallet, $tranches): array
@@ -53,5 +50,28 @@ class ProportionAllocationAlgorithm implements AllocationAlgorithm
                 return $wallet->canInvestIn($tranche);
             }
         );
+    }
+
+    private function sumOnTranches(array $eligibleTranches): Money
+    {
+        return array_reduce(
+            $eligibleTranches,
+            function (Money $carry, Tranche $tranche) {
+                return $carry->add($tranche->availableAmount());
+            },
+            Money::GBP('0')
+        );
+    }
+
+    private function ratios(Money $sumOnTranches, array $eligibleTranches): array
+    {
+        $ratios = [];
+
+        /** @var Tranche $tranche */
+        foreach ($eligibleTranches as $tranche) {
+            $ratios[] = $tranche->availableAmount()->getAmount() / $sumOnTranches->getAmount();
+        }
+
+        return $ratios;
     }
 }
