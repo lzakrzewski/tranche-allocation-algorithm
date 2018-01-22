@@ -102,6 +102,35 @@ class ProportionAllocationAlgorithmTest extends TestCase
     }
 
     /** @test */
+    public function it_can_allocate_5_wallets_to_3_tranches(): void
+    {
+        //Fix method can invest to check positive balance
+        //Add VO sum (of tranches
+        //Improve test
+
+
+        $wallets = [
+            Wallet::create('w1', Money::GBP('100000000'), ['A'], Percentage::_75()),
+            Wallet::create('w2', Money::GBP('100000000'), ['A'], Percentage::_75()),
+            Wallet::create('w3', Money::GBP('20000000'), ['A'], Percentage::_75()),
+            Wallet::create('w4', Money::GBP('300000'), ['A'], Percentage::_75()),
+            Wallet::create('w5', Money::GBP('100000'), ['A'], Percentage::_75()),
+        ];
+
+        $tranches = [
+            Tranche::create('t1', 'A', Money::GBP('100000000'), Percentage::_75()),
+            Tranche::create('t2', 'A', Money::GBP('20000000'), Percentage::_75()),
+            Tranche::create('t3', 'A', Money::GBP('50000'), Percentage::_75()),
+        ];
+
+        $allocation = $this->algorithm->allocate($wallets, $tranches);
+
+        $numberOfIterations = $this->simulateInvestments($wallets, $tranches);
+
+        $this->assertEquals(1, $numberOfIterations);
+    }
+
+    /** @test */
     public function it_can_invest_using_allocation(): void
     {
         $wallets = [
@@ -146,14 +175,16 @@ class ProportionAllocationAlgorithmTest extends TestCase
     {
         $iterations = 0;
 
-        $history = [];
-
         do {
+            $sumOnWalletsBefore  = $this->sumOnWallets($wallets);
+            $sumOnTranchesBefore = $this->sumOnTranches($tranches);
+
             $allocations = $this->algorithm->allocate($wallets, $tranches);
-
-            $history[] = $allocations;
-
             ++$iterations;
+
+            if (empty($allocations)) {
+                return $iterations;
+            }
 
             foreach ($allocations as $allocation) {
                 $tranche = $this->findTranche($allocation['tranche'], $tranches);
@@ -165,11 +196,12 @@ class ProportionAllocationAlgorithmTest extends TestCase
                 }
             }
 
+            $this->createCsvLog($iterations, $sumOnTranchesBefore, $sumOnWalletsBefore, $tranches, $wallets, $allocations);
+
             $sumOnTranches = $this->sumOnTranches($tranches);
             $sumOnWallets  = $this->sumOnWallets($wallets);
 
             if ($iterations > 100) {
-                $this->createCsvLog($history);
                 $this->fail('Too many iterations');
             }
         } while (!$sumOnTranches->isZero() && !$sumOnWallets->isZero());
@@ -268,35 +300,38 @@ class ProportionAllocationAlgorithmTest extends TestCase
         return $tranches;
     }
 
-    private function createCsvLog(array $history)
+    private function createCsvLog(int $iteration, Money $sumOnTranchesBefore, Money $sumOnWalletsBEfore, array $tranches, array $wallets, array $allocations)
     {
         // Generate CSV data from array
         $fh = fopen('php://temp', 'rw'); // don't create a file, attempt
         // to use memory instead
 
+        fputcsv($fh, ['tranches', 'wallets']);
+        fputcsv($fh, [count($tranches), count($wallets)]);
+
+        $sumOnTranches = $this->sumOnTranches($tranches);
+        $sumOnWallets  = $this->sumOnWallets($wallets);
+
+        fputcsv($fh, [($sumOnTranchesBefore->getAmount() / 100), ($sumOnWalletsBEfore->getAmount() / 100)]);
+        fputcsv($fh, [($sumOnTranches->getAmount() / 100), ($sumOnWallets->getAmount() / 100)]);
+
         // write out the headers
-        fputcsv($fh, array_keys(current($allocations)));
+        fputcsv($fh, ['tranche', 'wallet', 'balance_before', 'allocation']);
 
         // write out the data
         foreach ($allocations as $row) {
-            $row = array_map(
-                function (array $before) {
-                    $before['amount'] = ($before['amount']->getAmount() / 100);
-
-                    return $before;
-                },
-                $row
-            );
-            var_dump($row);
-            die;
-
-            fputcsv($fh, $row);
+            fputcsv($fh, [
+                'tranche' => $row['tranche'],
+                'wallet'  => $row['wallet'],
+            //    'balance_before' => ($row['balance']->getAmount() / 100),
+                'allocation' => ($row['amount']->getAmount() / 100),
+            ]);
         }
         rewind($fh);
         $csv = stream_get_contents($fh);
         fclose($fh);
 
-        file_put_contents(__DIR__.'/../../var/log/allocations.csv', $csv);
+        file_put_contents(sprintf(__DIR__.'/../../var/logs/allocations%d.csv', $iteration), $csv);
 
         return $csv;
     }

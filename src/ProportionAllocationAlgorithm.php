@@ -42,19 +42,21 @@ class ProportionAllocationAlgorithm implements AllocationAlgorithm
             die;
         }
 
-        //  var_dump($allocations);
-
-        // die;
-
         foreach ($eligibleTranches as $key => $tranche) {
             if (false === isset($allocations[$key])) {
                 continue;
+            }
+
+            /** @var Money[] $allocations */
+            if (true === $allocations[$key]->lessThan(Money::GBP('1'))) {
+                // continue;
             }
 
             $result[] = [
                 'wallet'  => $wallet->id(),
                 'tranche' => $tranche->id(),
                 'amount'  => $allocations[$key],
+              //  'balance' => $wallet->balance(),
             ];
         }
 
