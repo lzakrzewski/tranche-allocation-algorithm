@@ -40,9 +40,7 @@ class Tranche
      */
     public function invest(Money $amount): Money
     {
-        $this->availableAmount = $this->availableAmount->subtract($amount);
-
-        $this->guardAgainstNegativeAvailableAmount();
+        $this->updateAvailableAmount($amount);
 
         return $amount;
     }
@@ -74,18 +72,24 @@ class Tranche
 
     private function __construct(string $id, string $name, Money $availableAmount, Percentage $percentage)
     {
+        if (true === $availableAmount->isNegative()) {
+            throw new \DomainException('Tranche availableAmount can not be negative');
+        }
+
         $this->id              = $id;
         $this->name            = $name;
         $this->availableAmount = $availableAmount;
         $this->percentage      = $percentage;
-
-        $this->guardAgainstNegativeAvailableAmount();
     }
 
-    private function guardAgainstNegativeAvailableAmount(): void
+    private function updateAvailableAmount(Money $amount): void
     {
-        if (true === $this->availableAmount->isNegative()) {
+        $newAvailableAmount = $this->availableAmount->subtract($amount);
+
+        if (true === $amount->isNegative()) {
             throw new \DomainException('Tranche availableAmount can not be negative');
         }
+
+        $this->availableAmount = $newAvailableAmount;
     }
 }

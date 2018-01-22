@@ -39,7 +39,7 @@ class Percentage
         return $this->value;
     }
 
-    private function __construct(string $value)
+    public function __construct(string $value)
     {
         $this->value = $value;
     }

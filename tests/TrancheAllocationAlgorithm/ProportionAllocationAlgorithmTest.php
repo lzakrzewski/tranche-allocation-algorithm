@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace tests\TrancheAllocationAlgorithm;
 
+use Money\Currency;
 use Money\Money;
 use PHPUnit\Framework\TestCase;
 use TrancheAllocationAlgorithm\Percentage;
@@ -118,6 +119,19 @@ class ProportionAllocationAlgorithmTest extends TestCase
         $this->assertEquals(1, $numberOfIterations);
     }
 
+    /** @test */
+    public function it_can_invest_with_real_data(): void
+    {
+        $this->markTestIncomplete();
+
+        $wallets  = $this->readCsvWallets();
+        $tranches = $this->readCsvTranches();
+
+        $numberOfIterations = $this->simulateInvestments($wallets, $tranches);
+
+        $this->assertEquals(1, $numberOfIterations);
+    }
+
     protected function setUp(): void
     {
         $this->algorithm = new ProportionAllocationAlgorithm();
@@ -132,8 +146,12 @@ class ProportionAllocationAlgorithmTest extends TestCase
     {
         $iterations = 0;
 
+        $history = [];
+
         do {
             $allocations = $this->algorithm->allocate($wallets, $tranches);
+
+            $history[] = $allocations;
 
             ++$iterations;
 
@@ -141,11 +159,19 @@ class ProportionAllocationAlgorithmTest extends TestCase
                 $tranche = $this->findTranche($allocation['tranche'], $tranches);
                 $wallet  = $this->findWallet($allocation['wallet'], $wallets);
 
-                $wallet->invest($tranche, $allocation['amount']);
+                try {
+                    $wallet->invest($tranche, $allocation['amount']);
+                } catch (\Exception $e) {
+                }
             }
 
             $sumOnTranches = $this->sumOnTranches($tranches);
             $sumOnWallets  = $this->sumOnWallets($wallets);
+
+            if ($iterations > 100) {
+                $this->createCsvLog($history);
+                $this->fail('Too many iterations');
+            }
         } while (!$sumOnTranches->isZero() && !$sumOnWallets->isZero());
 
         return $iterations;
@@ -193,5 +219,85 @@ class ProportionAllocationAlgorithmTest extends TestCase
         }
 
         $this->fail(sprintf('Tranche with id %s does not exist', $id));
+    }
+
+    /** @return  Wallet[] */
+    private function readCsvWallets(): array
+    {
+        $wallets = [];
+        $file    = fopen(__DIR__.'/../../fixtures/wallets_data.csv', 'r');
+
+        while (false !== ($line = fgetcsv($file))) {
+            if ('id' == $line[0]) {
+                continue;
+            }
+
+            $tranches = explode('-', $line[3]);
+
+            $wallets[] = Wallet::create(
+                $line[0],
+                new Money((int) $line[1] * 100, new Currency('GBP')),
+                $tranches,
+                new Percentage($line[2])
+            );
+        }
+        fclose($file);
+
+        return $wallets;
+    }
+
+    private function readCsvTranches(): array
+    {
+        $tranches = [];
+        $file     = fopen(__DIR__.'/../../fixtures/tranches_data.csv', 'r');
+
+        while (false !== ($line = fgetcsv($file))) {
+            if ('id' == $line[0]) {
+                continue;
+            }
+
+            $tranches[] = Tranche::create(
+                $line[0],
+                $line[2],
+                new Money((int) $line[1] * 100, new Currency('GBP')),
+                new Percentage($line[3])
+            );
+        }
+        fclose($file);
+
+        return $tranches;
+    }
+
+    private function createCsvLog(array $history)
+    {
+        // Generate CSV data from array
+        $fh = fopen('php://temp', 'rw'); // don't create a file, attempt
+        // to use memory instead
+
+        // write out the headers
+        fputcsv($fh, array_keys(current($allocations)));
+
+        // write out the data
+        foreach ($allocations as $row) {
+            $row = array_map(
+                function (array $before) {
+                    $before['amount'] = ($before['amount']->getAmount() / 100);
+
+                    return $before;
+                },
+                $row
+            );
+            var_dump($row);
+            die;
+
+            fputcsv($fh, $row);
+        }
+        rewind($fh);
+        $csv = stream_get_contents($fh);
+        fclose($fh);
+
+        file_put_contents(__DIR__.'/../../var/log/allocations.csv', $csv);
+
+        return $csv;
     }
 }

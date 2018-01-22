@@ -48,9 +48,7 @@ class Wallet
             throw new \DomainException(sprintf('Can not invest to tranche %s', $tranche->id()));
         }
 
-        $this->balance = $this->balance->subtract($tranche->invest($amount));
-
-        $this->guardAgainstNegativeBalance();
+        $this->updateBalance($tranche->invest($amount));
     }
 
     public function isEmpty(): bool
@@ -80,18 +78,24 @@ class Wallet
 
     private function __construct(string $id, Money $balance, array $tranches, Percentage $percentage)
     {
+        if (true === $balance->isNegative()) {
+            throw new \DomainException('Wallet balance can not be negative');
+        }
+
         $this->id         = $id;
         $this->balance    = $balance;
         $this->tranches   = $tranches;
         $this->percentage = $percentage;
-
-        $this->guardAgainstNegativeBalance();
     }
 
-    private function guardAgainstNegativeBalance(): void
+    private function updateBalance(Money $amount): void
     {
-        if (true === $this->balance->isNegative()) {
+        $newBalance = $this->balance->subtract($amount);
+
+        if (true === $newBalance->isNegative()) {
             throw new \DomainException('Wallet balance can not be negative');
         }
+
+        $this->balance = $newBalance;
     }
 }
