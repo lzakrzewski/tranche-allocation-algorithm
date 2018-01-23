@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace tests\TrancheAllocationAlgorithm;
+namespace tests\unit;
 
 use PHPUnit\Framework\TestCase;
 use TrancheAllocationAlgorithm\Percentage;

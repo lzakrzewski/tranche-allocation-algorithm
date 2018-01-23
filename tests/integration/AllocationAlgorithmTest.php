@@ -2,20 +2,22 @@
 
 declare(strict_types=1);
 
-namespace tests\TrancheAllocationAlgorithm;
+namespace tests\integration;
 
 use Money\Currency;
 use Money\Money;
 use PHPUnit\Framework\TestCase;
+use TrancheAllocationAlgorithm\AllocationAlgorithm;
+use TrancheAllocationAlgorithm\ApplyCapAllocationAlgorithm;
 use TrancheAllocationAlgorithm\Percentage;
 use TrancheAllocationAlgorithm\ProportionAllocationAlgorithm;
 use TrancheAllocationAlgorithm\Sum;
 use TrancheAllocationAlgorithm\Tranche;
 use TrancheAllocationAlgorithm\Wallet;
 
-class ProportionAllocationAlgorithmTest extends TestCase
+class AllocationAlgorithmTest extends TestCase
 {
-    /** @var ProportionAllocationAlgorithm */
+    /** @var AllocationAlgorithm */
     private $algorithm;
 
     /** @test */
@@ -42,6 +44,111 @@ class ProportionAllocationAlgorithmTest extends TestCase
                 ['wallet'  => 'w1', 'tranche' => 't2', 'amount'  => Money::GBP('50')],
                 ['wallet'  => 'w2', 'tranche' => 't1', 'amount'  => Money::GBP('50')],
                 ['wallet'  => 'w2', 'tranche' => 't2', 'amount'  => Money::GBP('50')],
+            ],
+            $allocations
+        );
+    }
+
+    /** @test */
+    public function it_returns_empty_when_no_wallets(): void
+    {
+        $tranches = [
+            Tranche::create('t1', 'A', Money::GBP('100'), Percentage::_75()),
+            Tranche::create('t2', 'A', Money::GBP('100'), Percentage::_75()),
+        ];
+
+        $this->assertEmpty($this->algorithm->allocate([], $tranches));
+    }
+
+    /** @test */
+    public function it_returns_empty_when_no_wallets_with_any_money(): void
+    {
+        $wallets = [
+            Wallet::create('w1', Money::GBP('0'), ['A'], Percentage::_75()),
+            Wallet::create('w2', Money::GBP('0'), ['A'], Percentage::_75()),
+        ];
+
+        $tranches = [
+            Tranche::create('t1', 'A', Money::GBP('100'), Percentage::_75()),
+            Tranche::create('t2', 'A', Money::GBP('100'), Percentage::_75()),
+        ];
+
+        $this->assertEmpty($this->algorithm->allocate($wallets, $tranches));
+    }
+
+    /** @test */
+    public function it_returns_empty_when_no_tranches(): void
+    {
+        $wallets = [
+            Wallet::create('w1', Money::GBP('100'), ['A'], Percentage::_75()),
+            Wallet::create('w2', Money::GBP('100'), ['A'], Percentage::_75()),
+        ];
+
+        $this->assertEmpty($this->algorithm->allocate($wallets, []));
+    }
+
+    /** @test */
+    public function it_returns_empty_when_no_eligible_tranches(): void
+    {
+        $wallets = [
+            Wallet::create('w1', Money::GBP('100'), ['B'], Percentage::_60()),
+            Wallet::create('w2', Money::GBP('100'), ['A'], Percentage::_65()),
+        ];
+
+        $tranches = [
+            Tranche::create('t1', 'B', Money::GBP('100'), Percentage::_75()),
+            Tranche::create('t2', 'A', Money::GBP('100'), Percentage::_70()),
+            Tranche::create('t3', 'A', Money::GBP('0'), Percentage::_60()),
+        ];
+
+        $this->assertEmpty($this->algorithm->allocate($wallets, $tranches));
+    }
+
+    /** @test */
+    public function it_allocates_only_for_eligible_tranches(): void
+    {
+        $wallets = [
+            Wallet::create('w1', Money::GBP('100'), ['B'], Percentage::_70()),
+            Wallet::create('w2', Money::GBP('100'), ['A'], Percentage::_70()),
+        ];
+
+        $tranches = [
+            Tranche::create('t1', 'B', Money::GBP('100'), Percentage::_65()),
+            Tranche::create('t2', 'A', Money::GBP('100'), Percentage::_70()),
+            Tranche::create('t3', 'A', Money::GBP('0'), Percentage::_60()),
+            Tranche::create('t4', 'A', Money::GBP('100'), Percentage::_75()),
+            Tranche::create('t5', 'C', Money::GBP('100'), Percentage::_60()),
+        ];
+
+        $allocations = $this->algorithm->allocate($wallets, $tranches);
+
+        $this->assertEquals(
+            [
+                ['wallet'  => 'w1', 'tranche' => 't1', 'amount'  => Money::GBP('100')],
+                ['wallet'  => 'w2', 'tranche' => 't2', 'amount'  => Money::GBP('100')],
+            ],
+            $allocations
+        );
+    }
+
+    /** @test */
+    public function it_can_allocate_2_wallets_to_1_tranche_using_cap(): void
+    {
+        $wallets = [
+            Wallet::create('w1', Money::GBP('100'), ['A'], Percentage::_70()),
+            Wallet::create('w2', Money::GBP('100'), ['A'], Percentage::_70()),
+        ];
+
+        $tranches = [
+            Tranche::create('t1', 'A', Money::GBP('100'), Percentage::_65()),
+        ];
+
+        $allocations = $this->algorithm->allocate($wallets, $tranches);
+
+        $this->assertEquals(
+            [
+                ['wallet'  => 'w1', 'tranche' => 't1', 'amount'  => Money::GBP('50')],
+                ['wallet'  => 'w2', 'tranche' => 't1', 'amount'  => Money::GBP('50')],
             ],
             $allocations
         );
@@ -132,7 +239,7 @@ class ProportionAllocationAlgorithmTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->algorithm = new ProportionAllocationAlgorithm();
+        $this->algorithm = new ApplyCapAllocationAlgorithm(new ProportionAllocationAlgorithm());
     }
 
     protected function tearDown(): void
