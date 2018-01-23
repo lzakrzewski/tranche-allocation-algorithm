@@ -11,16 +11,13 @@ class ProportionAllocationAlgorithm implements AllocationAlgorithm
     /** {@inheritdoc} */
     public function allocate(array $wallets, array $tranches): array
     {
-        $allocations = [];
-
-        foreach ($wallets as $wallet) {
-            $allocations = array_merge(
-                $allocations,
-                $this->allocationsForWallet($wallet, $tranches)
-            );
-        }
-
-        return $allocations;
+        return array_reduce(
+            $wallets,
+            function (array $allocations, Wallet $wallet) use ($tranches) {
+                return array_merge($allocations, $this->allocationsForWallet($wallet, $tranches));
+            },
+            []
+        );
     }
 
     private function allocationsForWallet(Wallet $wallet, array $tranches): array
@@ -28,35 +25,19 @@ class ProportionAllocationAlgorithm implements AllocationAlgorithm
         $result           = [];
         $eligibleTranches = $this->eligibleTranches($wallet, $tranches);
 
-        if (empty($eligibleTranches)) {
+        if (true === empty($eligibleTranches)) {
             return [];
         }
 
-        $sumOnTranches    = $this->sumOnTranches($eligibleTranches);
-        $ratios           = $this->ratios($sumOnTranches, $eligibleTranches);
-        // var_dump($ratios);
-        try {
-            $allocations = $wallet->balance()->allocate($ratios);
-        } catch (\Exception $e) {
-            var_dump($ratios, $eligibleTranches);
-            die;
-        }
+        $sumOnTranches = Sum::ofTranches($eligibleTranches);
+        $ratios        = $this->ratios($sumOnTranches, $eligibleTranches);
+        $allocations   = $wallet->balance()->allocate($ratios);
 
         foreach ($eligibleTranches as $key => $tranche) {
-            if (false === isset($allocations[$key])) {
-                continue;
-            }
-
-            /** @var Money[] $allocations */
-            if (true === $allocations[$key]->lessThan(Money::GBP('1'))) {
-                // continue;
-            }
-
             $result[] = [
                 'wallet'  => $wallet->id(),
                 'tranche' => $tranche->id(),
                 'amount'  => $allocations[$key],
-              //  'balance' => $wallet->balance(),
             ];
         }
 
@@ -73,17 +54,6 @@ class ProportionAllocationAlgorithm implements AllocationAlgorithm
         );
 
         return array_values($eligibleTranches);
-    }
-
-    private function sumOnTranches(array $eligibleTranches): Money
-    {
-        return array_reduce(
-            $eligibleTranches,
-            function (Money $carry, Tranche $tranche) {
-                return $carry->add($tranche->availableAmount());
-            },
-            Money::GBP('0')
-        );
     }
 
     private function ratios(Money $sumOnTranches, array $eligibleTranches): array
