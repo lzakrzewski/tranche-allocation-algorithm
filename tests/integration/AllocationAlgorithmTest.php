@@ -184,6 +184,10 @@ class AllocationAlgorithmTest extends TestCase
     /** @test */
     public function it_can_allocate_5_wallets_to_3_tranches(): void
     {
+        //Todo: Fix an issue with negative tranche balance
+        //Todo: Add rule with 1 pound
+        //Todo: Compare this with spreed sheet
+
         $wallets = [
             Wallet::create('w1', Money::GBP('100000000'), ['A'], Percentage::_75()),
             Wallet::create('w2', Money::GBP('100000000'), ['A'], Percentage::_75()),
@@ -199,8 +203,12 @@ class AllocationAlgorithmTest extends TestCase
         ];
 
         $allocations = $this->algorithm->allocate($wallets, $tranches);
+        $this->simulateInvestments($allocations, $wallets, $tranches);
 
-        $this->assertCount(15, $allocations);
+        $allocations = $this->algorithm->allocate($wallets, $tranches);
+        $this->simulateInvestments($allocations, $wallets, $tranches);
+
+        $this->assertEquals(Money::GBP('0'), Sum::ofTranches($tranches));
     }
 
     /** @test */

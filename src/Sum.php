@@ -99,4 +99,26 @@ class Sum
             )
         );
     }
+
+    /**
+     * @param string $trancheId
+     * @param array  $allocations
+     *
+     * @return Money
+     */
+    public static function ofAllocationForTranche(string $trancheId, array $allocations): Money
+    {
+        return self::ofAllocations(
+            array_filter(
+                $allocations,
+                function (array $allocation) use ($trancheId) {
+                    if (false === isset($allocation['tranche'])) {
+                        throw new \InvalidArgumentException('Allocation should have "tranche" key');
+                    }
+
+                    return $trancheId === $allocation['tranche'];
+                }
+            )
+        );
+    }
 }

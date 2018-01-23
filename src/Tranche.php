@@ -40,6 +40,10 @@ class Tranche
      */
     public function invest(Money $amount): Money
     {
+        if ($amount->greaterThan($this->availableAmount())) {
+            $amount = $this->availableAmount();
+        }
+
         $this->updateAvailableAmount($amount);
 
         return $amount;

@@ -49,8 +49,7 @@ class ProportionAllocationAlgorithm implements AllocationAlgorithm
         $eligibleTranches = array_filter(
             $tranches,
             function (Tranche $tranche) use ($wallet) {
-                //Todo: remove this check
-                return $wallet->canInvestIn($tranche) && $tranche->availableAmount()->isPositive();
+                return $wallet->canInvestIn($tranche);
             }
         );
 

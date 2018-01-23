@@ -55,9 +55,11 @@ class ApplyCapAllocationAlgorithm implements AllocationAlgorithm
 
         foreach ($tranches as $tranche) {
             $trancheId              = (string) $tranche->id();
+            /** @var Money $amount */
             $amount                 = $tranche->availableAmount();
             $eligibleInvestorsCount = $this->countEligibleInvestorsForTranche($tranche, $allocations);
 
+            //This division sucks
             if (0 !== $eligibleInvestorsCount) {
                 $caps[$trancheId] = $amount->divide($eligibleInvestorsCount);
             }
