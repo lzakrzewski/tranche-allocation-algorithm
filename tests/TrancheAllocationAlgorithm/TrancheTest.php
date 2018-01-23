@@ -14,12 +14,20 @@ class TrancheTest extends TestCase
     /** @test */
     public function it_can_be_created(): void
     {
-        $tranche = Tranche::create('t1', 'A', Money::GBP('1001'), Percentage::_75());
+        $tranche = Tranche::create('t1', 'A', Money::GBP('1001'), Percentage::_65());
 
         $this->assertInstanceOf(Tranche::class, $tranche);
         $this->assertEquals('t1', $tranche->id());
         $this->assertEquals('A', $tranche->name());
         $this->assertEquals(Money::GBP('1001'), $tranche->availableAmount());
+        $this->assertEquals(Percentage::_65(), $tranche->percentage());
+    }
+
+    /** @test */
+    public function it_has_default_percentage_equal_to_75(): void
+    {
+        $tranche = Tranche::create('t1', 'A', Money::GBP('1001'));
+
         $this->assertEquals(Percentage::_75(), $tranche->percentage());
     }
 

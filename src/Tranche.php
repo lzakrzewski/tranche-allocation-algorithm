@@ -21,16 +21,16 @@ class Tranche
     private $percentage;
 
     /**
-     * @param string     $id
-     * @param string     $name
-     * @param Money      $amount
-     * @param Percentage $percentage
+     * @param string          $id
+     * @param string          $name
+     * @param Money           $amount
+     * @param Percentage|null $percentage
      *
      * @return Tranche
      */
-    public static function create(string $id, string $name, Money $amount, Percentage $percentage): self
+    public static function create(string $id, string $name, Money $amount, Percentage $percentage = null): self
     {
-        return new self($id, $name, $amount, $percentage);
+        return new self($id, $name, $amount, $percentage ?: Percentage::_75());
     }
 
     /**
@@ -86,7 +86,7 @@ class Tranche
     {
         $newAvailableAmount = $this->availableAmount->subtract($amount);
 
-        if (true === $amount->isNegative()) {
+        if (true === $newAvailableAmount->isNegative()) {
             throw new \DomainException('Tranche availableAmount can not be negative');
         }
 

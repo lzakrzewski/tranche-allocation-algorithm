@@ -9,6 +9,7 @@ use Money\Money;
 use PHPUnit\Framework\TestCase;
 use TrancheAllocationAlgorithm\Percentage;
 use TrancheAllocationAlgorithm\ProportionAllocationAlgorithm;
+use TrancheAllocationAlgorithm\Sum;
 use TrancheAllocationAlgorithm\Tranche;
 use TrancheAllocationAlgorithm\Wallet;
 
@@ -30,32 +31,19 @@ class ProportionAllocationAlgorithmTest extends TestCase
             Tranche::create('t2', 'A', Money::GBP('100'), Percentage::_75()),
         ];
 
-        $allocation = $this->algorithm->allocate($wallets, $tranches);
+        $allocations = $this->algorithm->allocate($wallets, $tranches);
+
+        $this->assertEquals(Sum::ofWallets($wallets), Sum::ofAllocations($allocations));
+        $this->assertEquals(Sum::ofTranches($tranches), Sum::ofAllocations($allocations));
 
         $this->assertEquals(
             [
-                [
-                    'wallet'  => 'w1',
-                    'tranche' => 't1',
-                    'amount'  => Money::GBP('50'),
-                ],
-                [
-                    'wallet'  => 'w1',
-                    'tranche' => 't2',
-                    'amount'  => Money::GBP('50'),
-                ],
-                [
-                    'wallet'  => 'w2',
-                    'tranche' => 't1',
-                    'amount'  => Money::GBP('50'),
-                ],
-                [
-                    'wallet'  => 'w2',
-                    'tranche' => 't2',
-                    'amount'  => Money::GBP('50'),
-                ],
+                ['wallet'  => 'w1', 'tranche' => 't1', 'amount'  => Money::GBP('50')],
+                ['wallet'  => 'w1', 'tranche' => 't2', 'amount'  => Money::GBP('50')],
+                ['wallet'  => 'w2', 'tranche' => 't1', 'amount'  => Money::GBP('50')],
+                ['wallet'  => 'w2', 'tranche' => 't2', 'amount'  => Money::GBP('50')],
             ],
-            $allocation
+            $allocations
         );
     }
 
@@ -72,42 +60,23 @@ class ProportionAllocationAlgorithmTest extends TestCase
             Tranche::create('t2', 'A', Money::GBP('90'), Percentage::_75()),
         ];
 
-        $allocation = $this->algorithm->allocate($wallets, $tranches);
+        $allocations = $this->algorithm->allocate($wallets, $tranches);
 
+        $this->assertEquals(Sum::ofWallets($wallets), Sum::ofAllocations($allocations));
         $this->assertEquals(
             [
-                [
-                    'wallet'  => 'w1',
-                    'tranche' => 't1',
-                    'amount'  => Money::GBP('55'),
-                ],
-                [
-                    'wallet'  => 'w1',
-                    'tranche' => 't2',
-                    'amount'  => Money::GBP('45'),
-                ],
-                [
-                    'wallet'  => 'w2',
-                    'tranche' => 't1',
-                    'amount'  => Money::GBP('33'),
-                ],
-                [
-                    'wallet'  => 'w2',
-                    'tranche' => 't2',
-                    'amount'  => Money::GBP('27'),
-                ],
+                ['wallet'  => 'w1', 'tranche' => 't1', 'amount'  => Money::GBP('55')],
+                ['wallet'  => 'w1', 'tranche' => 't2', 'amount'  => Money::GBP('45')],
+                ['wallet'  => 'w2', 'tranche' => 't1', 'amount'  => Money::GBP('33')],
+                ['wallet'  => 'w2', 'tranche' => 't2', 'amount'  => Money::GBP('27')],
             ],
-            $allocation
+            $allocations
         );
     }
 
     /** @test */
     public function it_can_allocate_5_wallets_to_3_tranches(): void
     {
-        //Fix method can invest to check positive balance
-        //Add VO sum (of tranches
-        //Improve test
-
         $wallets = [
             Wallet::create('w1', Money::GBP('100000000'), ['A'], Percentage::_75()),
             Wallet::create('w2', Money::GBP('100000000'), ['A'], Percentage::_75()),
@@ -122,11 +91,9 @@ class ProportionAllocationAlgorithmTest extends TestCase
             Tranche::create('t3', 'A', Money::GBP('50000'), Percentage::_75()),
         ];
 
-        $allocation = $this->algorithm->allocate($wallets, $tranches);
+        $allocations = $this->algorithm->allocate($wallets, $tranches);
 
-        $numberOfIterations = $this->simulateInvestments($wallets, $tranches);
-
-        $this->assertEquals(1, $numberOfIterations);
+        $this->assertCount(15, $allocations);
     }
 
     /** @test */
@@ -142,22 +109,25 @@ class ProportionAllocationAlgorithmTest extends TestCase
             Tranche::create('t2', 'A', Money::GBP('100'), Percentage::_75()),
         ];
 
-        $numberOfIterations = $this->simulateInvestments($wallets, $tranches);
+        $this->simulateInvestments(
+            $this->algorithm->allocate($wallets, $tranches),
+            $wallets,
+            $tranches
+        );
 
-        $this->assertEquals(1, $numberOfIterations);
+        $this->assertEquals(Money::GBP('0'), Sum::ofTranches($tranches));
+        $this->assertEquals(Money::GBP('0'), Sum::ofWallets($wallets));
     }
 
     /** @test */
-    public function it_can_invest_with_real_data(): void
+    public function it_can_allocate_using_real_data(): void
     {
-        $this->markTestIncomplete();
-
         $wallets  = $this->readCsvWallets();
         $tranches = $this->readCsvTranches();
 
-        $numberOfIterations = $this->simulateInvestments($wallets, $tranches);
+        $allocations = $this->algorithm->allocate($wallets, $tranches);
 
-        $this->assertEquals(1, $numberOfIterations);
+        $this->assertNotEmpty($allocations);
     }
 
     protected function setUp(): void
@@ -170,64 +140,14 @@ class ProportionAllocationAlgorithmTest extends TestCase
         $this->algorithm = null;
     }
 
-    private function simulateInvestments(array $wallets, array $tranches)
+    private function simulateInvestments(array $allocations, array $wallets, array $tranches): void
     {
-        $iterations = 0;
+        foreach ($allocations as $allocation) {
+            $tranche = $this->findTranche($allocation['tranche'], $tranches);
+            $wallet  = $this->findWallet($allocation['wallet'], $wallets);
 
-        do {
-            $sumOnWalletsBefore  = $this->sumOnWallets($wallets);
-            $sumOnTranchesBefore = $this->sumOnTranches($tranches);
-
-            $allocations = $this->algorithm->allocate($wallets, $tranches);
-            ++$iterations;
-
-            if (empty($allocations)) {
-                return $iterations;
-            }
-
-            foreach ($allocations as $allocation) {
-                $tranche = $this->findTranche($allocation['tranche'], $tranches);
-                $wallet  = $this->findWallet($allocation['wallet'], $wallets);
-
-                try {
-                    $wallet->invest($tranche, $allocation['amount']);
-                } catch (\Exception $e) {
-                }
-            }
-
-            $this->createCsvLog($iterations, $sumOnTranchesBefore, $sumOnWalletsBefore, $tranches, $wallets, $allocations);
-
-            $sumOnTranches = $this->sumOnTranches($tranches);
-            $sumOnWallets  = $this->sumOnWallets($wallets);
-
-            if ($iterations > 100) {
-                $this->fail('Too many iterations');
-            }
-        } while (!$sumOnTranches->isZero() && !$sumOnWallets->isZero());
-
-        return $iterations;
-    }
-
-    private function sumOnTranches(array $tranches): Money
-    {
-        return array_reduce(
-            $tranches,
-            function (Money $carry, Tranche $tranche) {
-                return $carry->add($tranche->availableAmount());
-            },
-            Money::GBP('0')
-        );
-    }
-
-    private function sumOnWallets(array $wallets): Money
-    {
-        return array_reduce(
-            $wallets,
-            function (Money $carry, Wallet $wallet) {
-                return $carry->add($wallet->balance());
-            },
-            Money::GBP('0')
-        );
+            $wallet->invest($tranche, $allocation['amount']);
+        }
     }
 
     private function findWallet(string $id, array $wallets): Wallet
@@ -297,43 +217,5 @@ class ProportionAllocationAlgorithmTest extends TestCase
         fclose($file);
 
         return $tranches;
-    }
-
-    private function createCsvLog(int $iteration, Money $sumOnTranchesBefore, Money $sumOnWalletsBEfore, array $tranches, array $wallets, array $allocations)
-    {
-        return;
-
-        // Generate CSV data from array
-        $fh = fopen('php://temp', 'rw'); // don't create a file, attempt
-        // to use memory instead
-
-        fputcsv($fh, ['tranches', 'wallets']);
-        fputcsv($fh, [count($tranches), count($wallets)]);
-
-        $sumOnTranches = $this->sumOnTranches($tranches);
-        $sumOnWallets  = $this->sumOnWallets($wallets);
-
-        fputcsv($fh, [($sumOnTranchesBefore->getAmount() / 100), ($sumOnWalletsBEfore->getAmount() / 100)]);
-        fputcsv($fh, [($sumOnTranches->getAmount() / 100), ($sumOnWallets->getAmount() / 100)]);
-
-        // write out the headers
-        fputcsv($fh, ['tranche', 'wallet', 'balance_before', 'allocation']);
-
-        // write out the data
-        foreach ($allocations as $row) {
-            fputcsv($fh, [
-                'tranche' => $row['tranche'],
-                'wallet'  => $row['wallet'],
-            //    'balance_before' => ($row['balance']->getAmount() / 100),
-                'allocation' => ($row['amount']->getAmount() / 100),
-            ]);
-        }
-        rewind($fh);
-        $csv = stream_get_contents($fh);
-        fclose($fh);
-
-        file_put_contents(sprintf(__DIR__.'/../../var/logs/allocations%d.csv', $iteration), $csv);
-
-        return $csv;
     }
 }
