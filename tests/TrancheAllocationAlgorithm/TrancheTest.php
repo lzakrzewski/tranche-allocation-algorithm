@@ -24,6 +24,14 @@ class TrancheTest extends TestCase
     }
 
     /** @test */
+    public function it_can_not_be_created_with_negative_available_amount(): void
+    {
+        $this->expectException(\DomainException::class);
+
+        Tranche::create('t1', 'A', Money::GBP('-1001'), Percentage::_75());
+    }
+
+    /** @test */
     public function it_can_invest_money(): void
     {
         $tranche = Tranche::create('t1', 'A', Money::GBP('1001'), Percentage::_75());

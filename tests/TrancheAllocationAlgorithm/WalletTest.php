@@ -25,6 +25,14 @@ class WalletTest extends TestCase
     }
 
     /** @test */
+    public function it_can_not_be_created_with_negative_balance(): void
+    {
+        $this->expectException(\DomainException::class);
+
+        Wallet::create('w1', Money::GBP('-1000'), ['A', 'B'], Percentage::_75());
+    }
+
+    /** @test */
     public function it_knows_when_it_can_invest_in_tranche(): void
     {
         $wallet = Wallet::create('w1', Money::GBP('1000'), ['A', 'B'], Percentage::_75());

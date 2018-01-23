@@ -108,7 +108,6 @@ class ProportionAllocationAlgorithmTest extends TestCase
         //Add VO sum (of tranches
         //Improve test
 
-
         $wallets = [
             Wallet::create('w1', Money::GBP('100000000'), ['A'], Percentage::_75()),
             Wallet::create('w2', Money::GBP('100000000'), ['A'], Percentage::_75()),
@@ -302,6 +301,8 @@ class ProportionAllocationAlgorithmTest extends TestCase
 
     private function createCsvLog(int $iteration, Money $sumOnTranchesBefore, Money $sumOnWalletsBEfore, array $tranches, array $wallets, array $allocations)
     {
+        return;
+
         // Generate CSV data from array
         $fh = fopen('php://temp', 'rw'); // don't create a file, attempt
         // to use memory instead
